@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aviator Activation App</title>
+    <style>
+        /* --- Background & Fonts --- */
+        body {
+            margin: 0; padding: 0; display: flex; justify-content: center;
+            background: radial-gradient(circle at center, #5a0000 0%, #170000 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #ffffff; box-sizing: border-box; height: 100vh; overflow: hidden;
+        }
+
+        /* --- Gold Fire Sparks Animation --- */
+        .bg-animation {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1; overflow: hidden; margin: 0; padding: 0;
+        }
+        .bg-animation li {
+            position: absolute; display: block; list-style: none;
+            background: rgba(255, 215, 0, 0.9); border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255, 140, 0, 0.9), 0 0 20px rgba(255, 69, 0, 0.7);
+            animation: animateBg 15s linear infinite; bottom: -150px;
+        }
+        .bg-animation li:nth-child(1) { left: 25%; width: 12px; height: 12px; animation-delay: 0s; }
+        .bg-animation li:nth-child(2) { left: 10%; width: 8px; height: 8px; animation-delay: 2s; animation-duration: 12s; }
+        .bg-animation li:nth-child(3) { left: 70%; width: 15px; height: 15px; animation-delay: 4s; }
+        .bg-animation li:nth-child(4) { left: 40%; width: 10px; height: 10px; animation-delay: 0s; animation-duration: 18s; }
+        .bg-animation li:nth-child(5) { left: 65%; width: 6px; height: 6px; animation-delay: 0s; }
+        .bg-animation li:nth-child(6) { left: 75%; width: 18px; height: 18px; animation-delay: 3s; }
+        .bg-animation li:nth-child(7) { left: 35%; width: 22px; height: 22px; animation-delay: 7s; }
+        .bg-animation li:nth-child(8) { left: 50%; width: 9px; height: 9px; animation-delay: 15s; animation-duration: 25s; }
+        .bg-animation li:nth-child(9) { left: 20%; width: 14px; height: 14px; animation-delay: 2s; animation-duration: 20s; }
+        .bg-animation li:nth-child(10) { left: 85%; width: 25px; height: 25px; animation-delay: 0s; animation-duration: 11s; }
+
+        @keyframes animateBg {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-1000px) scale(1.5); opacity: 0; }
+        }
+
+        /* --- Main Screen (ආරම්භයේදී සැඟවී ඇත, Load වන විට පරීක්ෂා කර පෙන්වයි) --- */
+        .main-screen {
+            text-align: center; width: 100%; height: 100%;
+            padding: 8vh 20px 10vh 20px; display: none; flex-direction: column;
+            align-items: center; box-sizing: border-box; transition: opacity 0.5s ease-out;
+            position: absolute; z-index: 10; opacity: 0;
+        }
+        .logo { width: 100%; max-width: 250px; height: auto; margin-bottom: 25px; }
+        .random-code {
+            font-size: 45px; font-weight: bold; letter-spacing: 12px;
+            color: #ffffff; margin-bottom: 8px; font-family: monospace;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+        }
+        .activation-text { font-size: 16px; color: #a0a5b5; text-transform: uppercase; letter-spacing: 3px; font-weight: 600; margin-bottom: auto; }
+        
+        .check-btn {
+            background-color: #0056e0; color: white; border: none; padding: 0; font-size: 22px;
+            font-weight: bold; border-radius: 10px; cursor: pointer; width: 85%; max-width: 350px;
+            height: 60px; display: flex; justify-content: center; align-items: center;
+            text-transform: uppercase; transition: background-color 0.3s, transform 0.1s;
+        }
+        .check-btn:active { transform: scale(0.97); }
+        .check-btn:disabled { background-color: #444; cursor: not-allowed; }
+
+        .btn-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top: 4px solid #00c3ff;
+            border-radius: 50%; width: 24px; height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- Inner Screen --- */
+        .inner-screen {
+            display: none; flex-direction: column; justify-content: flex-start;
+            align-items: center; padding-top: 15vh; width: 100%; height: 100vh;
+            position: absolute; top: 0; left: 0; background-color: transparent;
+            opacity: 0; transition: opacity 0.5s ease-in; box-sizing: border-box; z-index: 5;
+        }
+        .circle-container { position: relative; width: 280px; height: 280px; display: flex; justify-content: center; align-items: center; }
+        .solid-circle { position: absolute; width: 100%; height: 100%; background-color: #1a0000; border-radius: 50%; z-index: 10; box-shadow: 0 0 25px rgba(0,0,0,0.8), inset 0 0 15px rgba(0,0,0,0.5); }
+        .rotating-light { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; z-index: 20; animation: spinEdge 4s linear infinite; }
+        .rotating-light::before { content: ""; position: absolute; top: -4px; left: -4px; right: -4px; bottom: -4px; border-radius: 50%; border: 6px solid #ffffff; box-shadow: 0 0 12px rgba(255, 255, 255, 0.7); }
+        .rotating-light::after { content: ""; position: absolute; top: -4px; left: -4px; right: -4px; bottom: -4px; border-radius: 50%; border: 6px dotted #000000; }
+        @keyframes spinEdge { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* --- Circle Inner Content (Time & Multiplier) --- */
+        .circle-content {
+            position: absolute;
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0; /* Initially hidden */
+            transition: opacity 0.5s ease-in;
+        }
+        .signal-time {
+            font-size: 50px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.9);
+            letter-spacing: 2px;
+            font-family: monospace;
+            margin-bottom: 5px;
+        }
+        .signal-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+            letter-spacing: 3px;
+        }
+
+        .status-box {
+            background-color: #240000; color: #ffffff; width: 85%; max-width: 350px;
+            height: 60px; border-radius: 10px; display: flex; justify-content: center;
+            align-items: center; font-size: 18px; font-weight: bold; text-transform: uppercase;
+            letter-spacing: 2px; margin-top: auto; margin-bottom: 10vh; box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0,0,0,0.5); border: 1px solid rgba(255, 255, 255, 0.1); 
+        }
+        .text-gold { color: #FFD700; text-shadow: 0 0 12px rgba(255, 215, 0, 0.6); letter-spacing: 4px; }
+
+        /* --- Custom Popup Modal --- */
+        .custom-popup {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.85); display: none; justify-content: center;
+            align-items: center; z-index: 9999; opacity: 0; transition: opacity 0.3s;
+        }
+        .popup-content {
+            background: #1e1e1e; padding: 25px; border-radius: 12px;
+            border: 1px solid #0056e0; text-align: center; max-width: 80%; width: 300px;
+            box-shadow: 0 0 20px rgba(0, 86, 224, 0.4);
+        }
+        .popup-message { color: #fff; font-size: 16px; margin-bottom: 25px; line-height: 1.5; }
+        .popup-btn {
+            background: #0056e0; color: #fff; border: none; padding: 10px 25px;
+            border-radius: 8px; font-weight: bold; font-size: 16px; cursor: pointer;
+            transition: 0.2s;
+        }
+        .popup-btn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+    <ul class="bg-animation">
+        <li></li><li></li><li></li><li></li><li></li>
+        <li></li><li></li><li></li><li></li><li></li>
+    </ul>
+
+    <!-- 1. Main Screen -->
+    <div class="main-screen" id="mainScreen">
+        <img src="https://i.postimg.cc/JnDscWXh/aviator-logo.png" alt="Aviator Logo" class="logo">
+        <div class="random-code" id="codeDisplay">0000</div>
+        <div class="activation-text">Activation App</div>
+        <button class="check-btn" id="checkBtn">CHECK</button>
+    </div>
+
+    <!-- 2. Inner Screen -->
+    <div class="inner-screen" id="innerScreen">
+        <div class="circle-container">
+            <div class="solid-circle"></div>
+            <div class="rotating-light"></div>
+            
+            <!-- Time & Multiplier Details (Hidden until connected) -->
+            <div class="circle-content" id="circleContent">
+                <div class="signal-time" id="signalTime">00:00</div>
+                <div class="signal-text">3× / 6×</div>
+            </div>
+        </div>
+
+        <div class="status-box" id="statusBox">
+            SYSTEM CONNECTING<span id="dots"></span>
+        </div>
+    </div>
+
+    <!-- 3. Custom Error Popup -->
+    <div class="custom-popup" id="customPopup">
+        <div class="popup-content">
+            <div class="popup-message" id="popupMessage">Error message.</div>
+            <button class="popup-btn" onclick="closePopup()">OK</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA9NbIc4z-4DGWRac3SUNd4Df1uJtyUlzQ",
+            authDomain: "colors-f016b.firebaseapp.com",
+            databaseURL: "https://colors-f016b-default-rtdb.firebaseio.com",
+            projectId: "colors-f016b",
+            storageBucket: "colors-f016b.firebasestorage.app",
+            messagingSenderId: "429268084914",
+            appId: "1:429268084914:web:b768769047a5f8ff30c1ab",
+            measurementId: "G-EHF8R7G800"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let isAppInside = false; 
+        let isCodeGenerating = false;
+        let currentTargetMs = 0; // Signal එක අවසන් වන Milliseconds අගය
+
+        // Popup Functions
+        window.showPopup = function(msg) {
+            const popup = document.getElementById('customPopup');
+            document.getElementById('popupMessage').innerText = msg;
+            popup.style.display = 'flex';
+            setTimeout(() => { popup.style.opacity = '1'; }, 10);
+        };
+        window.closePopup = function() {
+            const popup = document.getElementById('customPopup');
+            popup.style.opacity = '0';
+            setTimeout(() => { popup.style.display = 'none'; }, 300);
+        };
+
+        // ==========================================
+        // Signal Time Generator (Globally Synced - Sri Lanka Time)
+        // ==========================================
+        function getNextSignalTime() {
+            const nowMs = Date.now();
+            const slOffset = 5.5 * 3600000; // Sri Lanka +5:30 offset in ms
+            const slTimeMs = nowMs + slOffset;
+            
+            // ශ්‍රී ලංකා වේලාව අනුව අද දවසේ ආරම්භය (00:00)
+            const daysSinceEpoch = Math.floor(slTimeMs / 86400000);
+            const startOfDaySlMs = daysSinceEpoch * 86400000;
+            
+            // දිනකට එකම Seed අගයක් භාවිත කිරීමෙන් ලොව පුරා සැමට එකම වෙලාවන් ජනනය වේ
+            let seed = daysSinceEpoch; 
+            function seededRandom() {
+                let x = Math.sin(seed++) * 10000;
+                return x - Math.floor(x);
+            }
+            
+            let scheduleMs = startOfDaySlMs;
+            const gaps = [5, 6, 7, 9, 10]; // විනාඩි පරතරයන්
+            
+            // + 60000 (මිලි තත්පර 60,000) එකතු කිරීමෙන් අදාළ විනාඩිය සම්පුර්ණයෙන්ම අවසන් වන තුරු
+            // පවතින Time එකම තබාගෙන විනාඩිය ඉවර වූ පසු ඊළඟ වෙලාව ජනනය කරයි.
+            while (scheduleMs + 60000 <= slTimeMs) {
+                let gapIndex = Math.floor(seededRandom() * gaps.length);
+                scheduleMs += gaps[gapIndex] * 60000; 
+            }
+            
+            // Format HH:MM
+            const targetTimeSinceStart = scheduleMs - startOfDaySlMs;
+            const totalMins = Math.floor(targetTimeSinceStart / 60000);
+            const hours = Math.floor(totalMins / 60) % 24;
+            const mins = totalMins % 60;
+            
+            return {
+                formatted: `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`,
+                // Real UTC Timestamp of the target (මෙහිදී අදාළ විනාඩිය අවසන් වන වේලාව සකසයි)
+                targetMs: scheduleMs + 60000 - slOffset 
+            };
+        }
+
+        function updateSignalDisplay() {
+            const nextSignal = getNextSignalTime();
+            document.getElementById('signalTime').innerText = nextSignal.formatted;
+            currentTargetMs = nextSignal.targetMs;
+        }
+
+        // ==========================================
+        // App Load & Screen Manager
+        // ==========================================
+        function showMainScreen() {
+            const main = document.getElementById('mainScreen');
+            main.style.display = 'flex';
+            setTimeout(() => { main.style.opacity = '1'; }, 50);
+        }
+
+        function showInnerScreenDirectly() {
+            isAppInside = true;
+            document.getElementById('mainScreen').style.display = 'none';
+            const inner = document.getElementById('innerScreen');
+            inner.style.display = 'flex';
+            setTimeout(() => {
+                inner.style.opacity = '1';
+                startConnectionAnimation();
+            }, 50);
+        }
+
+        function setupNewCode() {
+            isCodeGenerating = true;
+            let newCode = Math.floor(1000 + Math.random() * 9000);
+            localStorage.setItem('aviatorCode', newCode);
+            document.getElementById('codeDisplay').innerText = newCode;
+            
+            set(ref(db, 'users/' + newCode), { status: 'pending' }).then(() => {
+                isCodeGenerating = false;
+            });
+            return newCode;
+        }
+
+        // Check Local Storage and Auto-Skip Logic
+        let savedCode = localStorage.getItem('aviatorCode');
+        if (savedCode) {
+            get(ref(db, 'users/' + savedCode)).then((snapshot) => {
+                // Admin Active කර ඇත්නම් කෙලින්ම ඇතුලට යයි (Direct Login)
+                if (snapshot.exists() && snapshot.val().status === 'active') {
+                    showInnerScreenDirectly();
+                } else {
+                    document.getElementById('codeDisplay').innerText = savedCode;
+                    showMainScreen();
+                }
+            }).catch(() => {
+                document.getElementById('codeDisplay').innerText = savedCode;
+                showMainScreen();
+            });
+        } else {
+            savedCode = setupNewCode();
+            showMainScreen();
+        }
+
+        // Auto Logout / Auto Login Realtime Listener
+        const userRef = ref(db, 'users/' + savedCode);
+        onValue(userRef, (snapshot) => {
+            if (isCodeGenerating) return; 
+
+            if (!snapshot.exists()) {
+                if (localStorage.getItem('aviatorCode')) {
+                    localStorage.removeItem('aviatorCode'); 
+                    if (isAppInside) {
+                        showPopup("Your session was closed by the Admin.");
+                        setTimeout(() => { location.reload(); }, 2000);
+                    } else {
+                        location.reload();
+                    }
+                }
+            } else {
+                const data = snapshot.val();
+                if (data.status === 'active' && !isAppInside) {
+                    if (document.getElementById('mainScreen').style.display === 'flex') {
+                        goToInside();
+                    } else {
+                        showInnerScreenDirectly();
+                    }
+                }
+            }
+        });
+
+        // ==========================================
+        // Button Click Manual Login
+        // ==========================================
+        document.getElementById('checkBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('checkBtn');
+            btn.innerHTML = '<div class="btn-spinner"></div>';
+            btn.disabled = true;
+
+            try {
+                const snapshot = await get(ref(db, 'users/' + savedCode));
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    if (data.status === 'active') {
+                        goToInside();
+                    } else {
+                        showPopup("This code is not activated yet. Please wait for the admin.");
+                        resetCheckBtn(btn);
+                    }
+                } else {
+                    showPopup("Code not found. Please restart the app.");
+                    resetCheckBtn(btn);
+                }
+            } catch (error) {
+                showPopup("Connection error. Please check your internet.");
+                resetCheckBtn(btn);
+            }
+        });
+
+        function resetCheckBtn(btn) {
+            setTimeout(() => {
+                btn.innerHTML = 'CHECK';
+                btn.disabled = false;
+            }, 500);
+        }
+
+        // ==========================================
+        // Inner Transitions & Connection
+        // ==========================================
+        function goToInside() {
+            if (isAppInside) return;
+            isAppInside = true;
+
+            const mainScreen = document.getElementById('mainScreen');
+            const innerScreen = document.getElementById('innerScreen');
+
+            mainScreen.style.opacity = '0';
+            setTimeout(() => {
+                mainScreen.style.display = 'none';
+                innerScreen.style.display = 'flex'; 
+                setTimeout(() => {
+                    innerScreen.style.opacity = '1';
+                    startConnectionAnimation(); 
+                }, 50); 
+            }, 500); 
+        }
+
+        function startConnectionAnimation() {
+            const statusBox = document.getElementById('statusBox');
+            statusBox.innerHTML = 'SYSTEM CONNECTING<span id="dots"></span>';
+            const dotsSpan = document.getElementById('dots');
+            
+            let dotCount = 0;
+            const dotInterval = setInterval(() => {
+                dotCount++;
+                if(dotCount <= 5) {
+                    dotsSpan.innerText = '.'.repeat(dotCount);
+                }
+            }, 800); 
+
+            setTimeout(() => {
+                clearInterval(dotInterval);
+                statusBox.innerHTML = '<span class="text-gold">CONNECTED</span>';
+                
+                // CONNECTED වූ පසු රවුම ඇතුළේ වෙලාව පෙන්වීම
+                updateSignalDisplay();
+                document.getElementById('circleContent').style.opacity = '1';
+
+                // සෑම මිලි තත්පර 500 කට වරක්ම වෙලාව පරීක්ෂා කිරීම (විනාඩිය පිරුණු ගමන් ක්ෂණිකව Update වීම සඳහා)
+                setInterval(() => {
+                    if(Date.now() >= currentTargetMs) {
+                        updateSignalDisplay();
+                    }
+                }, 500);
+
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
