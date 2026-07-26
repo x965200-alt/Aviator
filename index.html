@@ -163,7 +163,7 @@
             <div class="solid-circle"></div>
             <div class="rotating-light"></div>
             
-            <!-- Time & Multiplier Details (Hidden until connected) -->
+            <!-- Time & Multiplier Details -->
             <div class="circle-content" id="circleContent">
                 <div class="signal-time" id="signalTime">00:00</div>
                 <div class="signal-text">3× / 6×</div>
@@ -203,7 +203,55 @@
 
         let isAppInside = false; 
         let isCodeGenerating = false;
-        let currentTargetMs = 0; // Signal එක අවසන් වන Milliseconds අගය
+        let currentTargetMs = 0; 
+
+        // ==========================================
+        // REAL TIME API SYNC LOGIC
+        // ==========================================
+        let timeOffset = 0; // Phone Time සහ Server Time අතර පරතරය
+
+        // නිවැරදි Server Time එක ලබා ගැනීම සඳහා වූ Function එක
+        function getNowMs() {
+            return Date.now() + timeOffset;
+        }
+
+        // RapidAPI එක හරහා සැබෑ වේලාව Fetch කිරීම
+        async function fetchRealTimeOffset() {
+            try {
+                const response = await fetch('https://world-time-api3.p.rapidapi.com/ip.txt', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-rapidapi-host': 'world-time-api3.p.rapidapi.com',
+                        'x-rapidapi-key': '38d28a16ffmsh53812a43e7773e8p12faa2jsn1bf1ddf117fc'
+                    }
+                });
+                
+                const text = await response.text();
+                let serverUnix = null;
+
+                // API එකෙන් ලැබෙන Data වලින් Unix Time එක සොයාගැනීම (Regex භාවිතයෙන්)
+                const match = text.match(/unixtime(?:"|\s*:\s*|\s+)(\d+)/);
+                if (match && match[1]) {
+                    serverUnix = parseInt(match[1]);
+                } else {
+                    // ඇතැම් විට කෙලින්ම JSON ආවොත් ඒකත් හසුකර ගැනීමට
+                    try {
+                        const data = JSON.parse(text);
+                        if (data.unixtime) serverUnix = data.unixtime;
+                    } catch(e) {}
+                }
+
+                if (serverUnix) {
+                    const serverTimeMs = serverUnix * 1000;
+                    timeOffset = serverTimeMs - Date.now();
+                    console.log("Real Time Synced! Offset:", timeOffset, "ms");
+                }
+            } catch (error) {
+                console.error("API Time Sync Failed. Falling back to local device time.", error);
+            }
+            return true; 
+        }
 
         // Popup Functions
         window.showPopup = function(msg) {
@@ -222,7 +270,7 @@
         // Signal Time Generator (Globally Synced - Sri Lanka Time)
         // ==========================================
         function getNextSignalTime() {
-            const nowMs = Date.now();
+            const nowMs = getNowMs(); // Phone Time වෙනුවට Real Server Time භාවිත කෙරේ
             const slOffset = 5.5 * 3600000; // Sri Lanka +5:30 offset in ms
             const slTimeMs = nowMs + slOffset;
             
@@ -240,8 +288,7 @@
             let scheduleMs = startOfDaySlMs;
             const gaps = [5, 6, 7, 9, 10]; // විනාඩි පරතරයන්
             
-            // + 60000 (මිලි තත්පර 60,000) එකතු කිරීමෙන් අදාළ විනාඩිය සම්පුර්ණයෙන්ම අවසන් වන තුරු
-            // පවතින Time එකම තබාගෙන විනාඩිය ඉවර වූ පසු ඊළඟ වෙලාව ජනනය කරයි.
+            // අදාළ විනාඩිය සම්පුර්ණයෙන්ම අවසන් වන තුරු පවතින Time එකම තබාගැනීම
             while (scheduleMs + 60000 <= slTimeMs) {
                 let gapIndex = Math.floor(seededRandom() * gaps.length);
                 scheduleMs += gaps[gapIndex] * 60000; 
@@ -255,7 +302,7 @@
             
             return {
                 formatted: `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`,
-                // Real UTC Timestamp of the target (මෙහිදී අදාළ විනාඩිය අවසන් වන වේලාව සකසයි)
+                // අදාළ විනාඩිය අවසන් වන වේලාව
                 targetMs: scheduleMs + 60000 - slOffset 
             };
         }
@@ -302,7 +349,6 @@
         let savedCode = localStorage.getItem('aviatorCode');
         if (savedCode) {
             get(ref(db, 'users/' + savedCode)).then((snapshot) => {
-                // Admin Active කර ඇත්නම් කෙලින්ම ඇතුලට යයි (Direct Login)
                 if (snapshot.exists() && snapshot.val().status === 'active') {
                     showInnerScreenDirectly();
                 } else {
@@ -414,7 +460,13 @@
                 }
             }, 800); 
 
-            setTimeout(() => {
+            // 1. තත්පර 4ක Animation එක
+            const delayPromise = new Promise(resolve => setTimeout(resolve, 4000));
+            // 2. ඒ අතරතුර අන්තර්ජාලයෙන් Real Time එක ලබා ගැනීම
+            const timePromise = fetchRealTimeOffset();
+
+            // දෙකම සම්පුර්ණ වූ පසු ඊළඟ පියවරට යාම
+            Promise.all([delayPromise, timePromise]).then(() => {
                 clearInterval(dotInterval);
                 statusBox.innerHTML = '<span class="text-gold">CONNECTED</span>';
                 
@@ -422,14 +474,13 @@
                 updateSignalDisplay();
                 document.getElementById('circleContent').style.opacity = '1';
 
-                // සෑම මිලි තත්පර 500 කට වරක්ම වෙලාව පරීක්ෂා කිරීම (විනාඩිය පිරුණු ගමන් ක්ෂණිකව Update වීම සඳහා)
+                // සෑම මිලි තත්පර 500 කට වරක්ම (Real Server Time එක අනුව) වෙලාව පරීක්ෂා කිරීම 
                 setInterval(() => {
-                    if(Date.now() >= currentTargetMs) {
+                    if(getNowMs() >= currentTargetMs) {
                         updateSignalDisplay();
                     }
                 }, 500);
-
-            }, 4000);
+            });
         }
     </script>
 </body>
